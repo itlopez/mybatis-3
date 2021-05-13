@@ -35,6 +35,7 @@ public final class MappedStatement {
 
   private String resource;
   private Configuration configuration;
+  // sql的ID
   private String id;
   private Integer fetchSize;
   private Integer timeout;
