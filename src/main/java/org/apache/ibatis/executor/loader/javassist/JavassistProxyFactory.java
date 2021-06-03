@@ -65,7 +65,7 @@ public class JavassistProxyFactory implements org.apache.ibatis.executor.loader.
   }
 
   static Object crateProxy(Class<?> type, MethodHandler callback, List<Class<?>> constructorArgTypes, List<Object> constructorArgs) {
-
+    // 创建代理，父类是Bolg
     ProxyFactory enhancer = new ProxyFactory();
     enhancer.setSuperclass(type);
 
@@ -76,6 +76,7 @@ public class JavassistProxyFactory implements org.apache.ibatis.executor.loader.
         LogHolder.log.debug(WRITE_REPLACE_METHOD + " method was found on bean " + type + ", make sure it returns this");
       }
     } catch (NoSuchMethodException e) {
+      // 若无该方法WRITE_REPLACE_METHOD（type.getDeclaredMethod(WRITE_REPLACE_METHOD);），则继承接口
       enhancer.setInterfaces(new Class[] { WriteReplaceInterface.class });
     } catch (SecurityException e) {
       // nothing to do here
@@ -129,6 +130,7 @@ public class JavassistProxyFactory implements org.apache.ibatis.executor.loader.
 
     /**
      *  todo： 懒加载  重点：这里任何方法调用都会触发invoke方法的调用
+     *         包含toString（）、hashCode（）、equals（）、以及clone（）都会被代理
      * @param enhanced
      * @param method
      * @param methodProxy 跟jdk动态代理不一样，这里多了methodProxy

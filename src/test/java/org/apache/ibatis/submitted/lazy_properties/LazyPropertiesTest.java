@@ -73,11 +73,15 @@ class LazyPropertiesTest {
     }
   }
 
+  // 懒加载测试方法
   @Test
   void shouldToStringTriggerLazyLoading() {
     sqlSessionFactory.getConfiguration().setAggressiveLazyLoading(false);
     try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
       Mapper mapper = sqlSession.getMapper(Mapper.class);
+      // todo user类是经过JavassistProxyFactory$EnhancedResultObjectProxyImpl代理后的类,也是懒加载入口
+      // user类经过代理后，会产生属性handler（值为JavassistProxyFactory$EnhancedResultObjectProxyImpl）
+      // handler含有属性ResultLoaderMap（key为需要懒加载的属性名，value为ResultLoader），ResultLoader含有executor类
       User user = mapper.getUser(1);
       user.toString();
       assertEquals(3, user.setterCounter);
