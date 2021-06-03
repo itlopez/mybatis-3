@@ -75,7 +75,9 @@ public class ResultLoaderMap {
     return loaderMap.containsKey(property.toUpperCase(Locale.ENGLISH));
   }
 
+  // 核心方法，加载属性
   public boolean load(String property) throws SQLException {
+    // 触发懒加载时，先移除属性，再进行加载，及时加载失败了，懒加载也会消失
     LoadPair pair = loaderMap.remove(property.toUpperCase(Locale.ENGLISH));
     if (pair != null) {
       pair.load();
@@ -102,6 +104,7 @@ public class ResultLoaderMap {
   }
 
   /**
+   *  懒加载：待加载的属性集合类（Pair），持有ResultLoader的属性
    * Property which was not loaded yet.
    */
   public static class LoadPair implements Serializable {
@@ -129,18 +132,21 @@ public class ResultLoaderMap {
     private transient Log log;
     /**
      * Factory class through which we get database connection.
+     * 单价在需要的factory类
      */
     private Class<?> configurationFactory;
     /**
-     * Name of the unread property.
+     * Name of the unread property.懒加载需要的属性：如comment
      */
     private String property;
     /**
      * ID of SQL statement which loads the property.
+     * 懒加载时需要的映射语句
      */
     private String mappedStatement;
     /**
      * Parameter of the sql statement.
+     * 懒加载需要的参数
      */
     private Serializable mappedParameter;
 
@@ -185,6 +191,9 @@ public class ResultLoaderMap {
     }
 
     public void load(final Object userObject) throws SQLException {
+      // metaResultObject:Blog对象（Blog对象下面有comment对象是懒加载）
+      // resultLoader：加载数据库的对象
+      // todo 为什么这里有可能为null，因为这两个对象是transient修饰的，所以序列化的时候不会序列化进去，所以反序列化的时候会为null（该if...else判断是构造懒加载环境）
       if (this.metaResultObject == null || this.resultLoader == null) {
         if (this.mappedParameter == null) {
           throw new ExecutorException("Property [" + this.property + "] cannot be loaded because "
@@ -202,6 +211,7 @@ public class ResultLoaderMap {
         }
 
         this.metaResultObject = config.newMetaObject(userObject);
+        // 构造一个关闭的执行器new ClosedExecutor()，以便在this.resultLoader.loadResult()时重新开一个执行器
         this.resultLoader = new ResultLoader(config, new ClosedExecutor(), ms, this.mappedParameter,
                 metaResultObject.getSetterType(this.property), null, null);
       }
@@ -210,12 +220,16 @@ public class ResultLoaderMap {
        * and executors aren't thread safe. (Is this sufficient?)
        *
        * A better approach would be making executors thread safe. */
+      // 该办法有点多余，因为上面metaResultObject为null时，表示是序列化
       if (this.serializationCheck == null) {
         final ResultLoader old = this.resultLoader;
         this.resultLoader = new ResultLoader(old.configuration, new ClosedExecutor(), old.mappedStatement,
                 old.parameterObject, old.targetType, old.cacheKey, old.boundSql);
       }
 
+      // 1、真正执行懒加载方法：this.resultLoader.loadResult()
+      // 2、 this.metaResultObject.setValue(property, this.resultLoader.loadResult())
+      // ，metaResultObject是含有懒加载字段的对象（这里是blog），property这里指的是需要懒加载的属性（comment）
       this.metaResultObject.setValue(property, this.resultLoader.loadResult());
     }
 

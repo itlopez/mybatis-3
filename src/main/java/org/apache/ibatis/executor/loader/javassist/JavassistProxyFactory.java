@@ -54,6 +54,7 @@ public class JavassistProxyFactory implements org.apache.ibatis.executor.loader.
     }
   }
 
+  // todo 创建代理核心方法（懒加载）
   @Override
   public Object createProxy(Object target, ResultLoaderMap lazyLoader, Configuration configuration, ObjectFactory objectFactory, List<Class<?>> constructorArgTypes, List<Object> constructorArgs) {
     return EnhancedResultObjectProxyImpl.createProxy(target, lazyLoader, configuration, objectFactory, constructorArgTypes, constructorArgs);
@@ -92,9 +93,14 @@ public class JavassistProxyFactory implements org.apache.ibatis.executor.loader.
     return enhanced;
   }
 
+  // todo：懒加载
+  // 注意：例如：blog对象下面有comments（list<Comment>）时，懒加载comments，实际上blog对象已经是被代理的类，blog对象中含有
+  // JavassistProxyFactory$EnhancedResultObjectProxyImpl的引用，EnhancedResultObjectProxyImpl中含有ResultLoaderMap（Map
+  // <String, LoadPair>）引用，LoadPair含有ResultLoader的引用，ResultLoader负责加载数据，底层还是用了Executor进行查询数据
   private static class EnhancedResultObjectProxyImpl implements MethodHandler {
 
     private final Class<?> type;
+    //  todo 存储懒加载（待加载）的属性，key为懒加载属性名称，value为LoadPair
     private final ResultLoaderMap lazyLoader;
     private final boolean aggressive;
     private final Set<String> lazyLoadTriggerMethods;
@@ -120,6 +126,16 @@ public class JavassistProxyFactory implements org.apache.ibatis.executor.loader.
       return enhanced;
     }
 
+
+    /**
+     *  todo： 懒加载  重点：这里任何方法调用都会触发invoke方法的调用
+     * @param enhanced
+     * @param method
+     * @param methodProxy 跟jdk动态代理不一样，这里多了methodProxy
+     * @param args
+     * @return
+     * @throws Throwable
+     */
     @Override
     public Object invoke(Object enhanced, Method method, Method methodProxy, Object[] args) throws Throwable {
       final String methodName = method.getName();
@@ -140,13 +156,19 @@ public class JavassistProxyFactory implements org.apache.ibatis.executor.loader.
             }
           } else {
             if (lazyLoader.size() > 0 && !FINALIZE_METHOD.equals(methodName)) {
+              // 注：这里就是Mybatis全局配置的参数：aggressiveLazyLoading，而lazyLoadTriggerMethods就是
+              // 这里的四个方法Arrays.asList("equals","clone", "hashCode", "toString")
               if (aggressive || lazyLoadTriggerMethods.contains(methodName)) {
+                // 该类（Blog）的所有懒加载参数会全部加载
                 lazyLoader.loadAll();
               } else if (PropertyNamer.isSetter(methodName)) {
+                // 如果是属性的setter方法，则移除懒加载的属性（即使对应属性的懒加载失效，保留Setter方法设置的内容）
                 final String property = PropertyNamer.methodToProperty(methodName);
                 lazyLoader.remove(property);
               } else if (PropertyNamer.isGetter(methodName)) {
+                // getter方法触发懒加载
                 final String property = PropertyNamer.methodToProperty(methodName);
+                // 如果懒加载含有getter方法的属性，触发懒加载
                 if (lazyLoader.hasLoader(property)) {
                   lazyLoader.load(property);
                 }
@@ -154,6 +176,7 @@ public class JavassistProxyFactory implements org.apache.ibatis.executor.loader.
             }
           }
         }
+        // 执行动态代理
         return methodProxy.invoke(enhanced, args);
       } catch (Throwable t) {
         throw ExceptionUtil.unwrapThrowable(t);

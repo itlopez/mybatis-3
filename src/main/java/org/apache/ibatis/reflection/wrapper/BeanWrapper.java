@@ -27,6 +27,7 @@ import org.apache.ibatis.reflection.invoker.Invoker;
 import org.apache.ibatis.reflection.property.PropertyTokenizer;
 
 /**
+ *  BeanWrapper是BaseWrapper的默认实现。其中的两个关键接口是getBeanProperty和setBeanProperty
  * @author Clinton Begin
  */
 public class BeanWrapper extends BaseWrapper {
