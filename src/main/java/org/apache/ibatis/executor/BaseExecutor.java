@@ -55,7 +55,12 @@ public abstract class BaseExecutor implements Executor {
   protected Executor wrapper;
 
   protected ConcurrentLinkedQueue<DeferredLoad> deferredLoads;
+
+  /**
+   *  一级缓存,Local Cache的查询和写入是在BaseExecutor内部完成的
+   */
   protected PerpetualCache localCache;
+
   protected PerpetualCache localOutputParameterCache;
   protected Configuration configuration;
 
@@ -107,6 +112,13 @@ public abstract class BaseExecutor implements Executor {
     return closed;
   }
 
+  /**
+   *  一级缓存是在 BaseExecutor 中的 update()方法中调用 clearLocalCache()清空的 （无条件），query 中会判断。
+   * @param ms
+   * @param parameter
+   * @return
+   * @throws SQLException
+   */
   @Override
   public int update(MappedStatement ms, Object parameter) throws SQLException {
     ErrorContext.instance().resource(ms.getResource()).activity("executing an update").object(ms.getId());
@@ -143,12 +155,16 @@ public abstract class BaseExecutor implements Executor {
     if (closed) {
       throw new ExecutorException("Executor was closed.");
     }
+    // 一级缓存，如果setting配置文件中flushCacheRequired为true，则清除一级缓存
+    // 注：一级缓存的级别是sqlSession级别的，也就是说，假如有sqlSession1 和 sqlSession2，sqlSession1查询（id=1，name=lopez）
+    //      ，sqlSession2更新（id=1，name=le），sqlSession1（读取到的仍然是id=1，name=lopez）再查询，则有可能出现脏读。
     if (queryStack == 0 && ms.isFlushCacheRequired()) {
       clearLocalCache();
     }
     List<E> list;
     try {
       queryStack++;
+      // Mybatis 一级缓存使用位置 localCache SqlSession级别
       list = resultHandler == null ? (List<E>) localCache.getObject(key) : null;
       if (list != null) {
         handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);
@@ -159,6 +175,7 @@ public abstract class BaseExecutor implements Executor {
       queryStack--;
     }
     if (queryStack == 0) {
+      // 延迟加载
       for (DeferredLoad deferredLoad : deferredLoads) {
         deferredLoad.load();
       }

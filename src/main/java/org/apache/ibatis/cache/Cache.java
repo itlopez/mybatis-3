@@ -37,6 +37,8 @@ import java.util.concurrent.locks.ReadWriteLock;
  * </pre>
  *
  * @author Clinton Begin
+ *
+ * 参考链接：https://blog.csdn.net/u014636209/article/details/107079650
  */
 
 public interface Cache {

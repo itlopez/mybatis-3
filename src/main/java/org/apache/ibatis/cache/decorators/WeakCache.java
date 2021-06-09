@@ -25,7 +25,7 @@ import org.apache.ibatis.cache.Cache;
 /**
  * Weak Reference cache decorator.
  * Thanks to Dr. Heinz Kabutz for his guidance here.
- *
+ *  更加积极地移除基于垃圾回收器状态 以及 软引用规则的对象
  * @author Clinton Begin
  */
 public class WeakCache implements Cache {

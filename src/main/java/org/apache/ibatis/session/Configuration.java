@@ -668,6 +668,8 @@ public class Configuration {
   }
 
   public Executor newExecutor(Transaction transaction, ExecutorType executorType) {
+
+    // 默认ExecutorType是SimpleExecutor
     executorType = executorType == null ? defaultExecutorType : executorType;
     executorType = executorType == null ? ExecutorType.SIMPLE : executorType;
     Executor executor;
@@ -678,9 +680,15 @@ public class Configuration {
     } else {
       executor = new SimpleExecutor(this, transaction);
     }
+    // 判断是否是二级缓存  配置文件中的cacheEnabled属性 当cacheEnabled=true时，会委派CachingExecutor   默认是开启二级缓存
+    // 注：cacheEnabled = true并不代表二级缓存生效,需要<select>属性配置中加入useCached="true"属性
+    //   <select id="selectBlogList" resultMap="BaseResultMap" useCache="true">
+    //        select bid, name, author_id authorId from blog
+    //  </select>
     if (cacheEnabled) {
       executor = new CachingExecutor(executor);
     }
+    // todo 插件 调用interceptorChain中的所有的interceptor，进行包装
     executor = (Executor) interceptorChain.pluginAll(executor);
     return executor;
   }

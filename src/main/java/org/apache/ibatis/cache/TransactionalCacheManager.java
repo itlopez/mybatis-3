@@ -22,6 +22,7 @@ import org.apache.ibatis.cache.decorators.TransactionalCache;
 
 /**
  * @author Clinton Begin
+ *  注：TransactionalCacheManager是CachingExecutor的缓存管理工具
  */
 public class TransactionalCacheManager {
 
@@ -39,6 +40,9 @@ public class TransactionalCacheManager {
     getTransactionalCache(cache).putObject(key, value);
   }
 
+  /**
+   * 此处sqlSession提交，才会使缓存作用于别的sqlSession
+   */
   public void commit() {
     for (TransactionalCache txCache : transactionalCaches.values()) {
       txCache.commit();

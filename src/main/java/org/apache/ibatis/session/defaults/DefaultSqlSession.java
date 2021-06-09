@@ -48,6 +48,10 @@ import org.apache.ibatis.session.SqlSession;
 public class DefaultSqlSession implements SqlSession {
 
   private final Configuration configuration;
+
+  /**
+   * 委托给底层的Executor进行查询
+   */
   private final Executor executor;
 
   private final boolean autoCommit;

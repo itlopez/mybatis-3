@@ -22,6 +22,7 @@ import org.apache.ibatis.cache.Cache;
 
 /**
  * Lru (least recently used) cache decorator.
+ *  默认：移除最长时间不被使用的对象
  *
  * @author Clinton Begin
  */

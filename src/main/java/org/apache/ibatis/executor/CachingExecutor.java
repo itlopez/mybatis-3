@@ -35,10 +35,18 @@ import org.apache.ibatis.transaction.Transaction;
 /**
  * @author Clinton Begin
  * @author Eduardo Macarron
+ *  注1：二级缓存是nameSpace级别，而一级缓存是sqlSession级别
+ *      先查询二级缓存，再次查询一级缓存
+ *  注2：cacheEnabled=true
+ *       <select id="selectBlogList" resultMap="BaseResultMap" useCache="true">
+ *         select bid, name, author_id authorId from blog
+ *      </select>
  */
 public class CachingExecutor implements Executor {
 
   private final Executor delegate;
+
+  // 二级缓存管理器
   private final TransactionalCacheManager tcm = new TransactionalCacheManager();
 
   public CachingExecutor(Executor delegate) {
@@ -94,18 +102,38 @@ public class CachingExecutor implements Executor {
       throws SQLException {
     Cache cache = ms.getCache();
     if (cache != null) {
+      // MappedStatement配置flushCacheRequired，则刷新缓存
       flushCacheIfRequired(ms);
+      // MappedStatement中配置了useCache属性，则表示使用二级缓存
       if (ms.isUseCache() && resultHandler == null) {
         ensureNoOutParams(ms, boundSql);
         @SuppressWarnings("unchecked")
+          // todo 重点：二级缓存的使用地方
         List<E> list = (List<E>) tcm.getObject(cache, key);
         if (list == null) {
           list = delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
+          // 注：二级缓存的cache是mappedStatement的cache，如下的cache参数：
+          // <mapper namespace="com.newboss.mapper.mobile.OrgWeixinMapper" >
+          //
+          //  <!-- 缓存对当前mapper起作用，CUD操作会自动跟新R的缓存 -->
+          //  <!-- 需要测试分布式情况下的缓存 -->
+          //  <cache
+          //        eviction="LRU"
+          //        flushInterval="600000"
+          //        size="1024"
+          //        readOnly="true"
+          //    />
+          //  <select id="listOrgWeixinByWxAppId" resultType="com.newboss.entity.mobile.OrgWeixin" useCache="false">
+          //    select * from org_weixin where wx_app_id = #{wxAppId};
+          //  </select>
+          //
+          //</mapper>
           tcm.putObject(cache, key, list); // issue #578 and #116
         }
         return list;
       }
     }
+    // 如果二级缓存为null，那么直接查询一级缓存
     return delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
   }
 
