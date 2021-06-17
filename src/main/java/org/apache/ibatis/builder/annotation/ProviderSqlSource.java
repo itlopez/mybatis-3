@@ -32,6 +32,8 @@ import org.apache.ibatis.session.Configuration;
 /**
  * @author Clinton Begin
  * @author Kazuki Shimizu
+ *
+ * 第三方脚本语言集成
  */
 public class ProviderSqlSource implements SqlSource {
 

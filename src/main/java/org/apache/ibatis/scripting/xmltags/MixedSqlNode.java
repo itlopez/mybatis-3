@@ -19,6 +19,7 @@ import java.util.List;
 
 /**
  * @author Clinton Begin
+ *  混合多个表达式的Node
  */
 public class MixedSqlNode implements SqlNode {
   private final List<SqlNode> contents;

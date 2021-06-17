@@ -36,9 +36,24 @@ import org.apache.ibatis.session.Configuration;
 public class BoundSql {
 
   private final String sql;
+  /**
+   * sql语句中有很多问号，这里指的是问号的映射值
+   */
   private final List<ParameterMapping> parameterMappings;
+
+  /**
+   * 传递过来最原始的参数
+   */
   private final Object parameterObject;
+
+  /**
+   * 条件参数（如foreach）：针对于sql传递过来的原参数进行计算，出来的最新的参数，如foreach后的参数
+   */
   private final Map<String, Object> additionalParameters;
+
+  /**
+   *  操作参数（parameterObject）的类
+   */
   private final MetaObject metaParameters;
 
   public BoundSql(Configuration configuration, String sql, List<ParameterMapping> parameterMappings, Object parameterObject) {

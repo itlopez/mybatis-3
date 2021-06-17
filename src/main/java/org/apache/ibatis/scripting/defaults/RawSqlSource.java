@@ -28,6 +28,7 @@ import org.apache.ibatis.session.Configuration;
 /**
  * Static SqlSource. It is faster than {@link DynamicSqlSource} because mappings are
  * calculated during startup.
+ *  静态sql编译，只生成一次StaticSqlSource
  *
  * @since 3.2.0
  * @author Eduardo Macarron

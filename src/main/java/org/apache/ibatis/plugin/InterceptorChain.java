@@ -28,6 +28,7 @@ public class InterceptorChain {
 
   public Object pluginAll(Object target) {
     for (Interceptor interceptor : interceptors) {
+      // interceptor.plugin(target) 生成代理后的对象,target这个为Executor、ParameterHandler、ResultSetHandler、StatementHandler接口的实现类
       target = interceptor.plugin(target);
     }
     return target;

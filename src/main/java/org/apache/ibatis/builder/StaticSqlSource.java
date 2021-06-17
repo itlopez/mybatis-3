@@ -24,6 +24,7 @@ import org.apache.ibatis.session.Configuration;
 
 /**
  * @author Clinton Begin
+ *  已编译的SQL：DynamicSqlSource 与 RawSqlSource编译完都会往这里丢
  */
 public class StaticSqlSource implements SqlSource {
 
@@ -41,6 +42,12 @@ public class StaticSqlSource implements SqlSource {
     this.configuration = configuration;
   }
 
+  /**
+   * 注：StaticSqlSource生成对应的BoundSql，DynamicSqlSource、RawSqlSource -》 StaticSqlSource -》 BoundSql
+   * StaticSqlSource只作中转作用
+   * @param parameterObject
+   * @return
+   */
   @Override
   public BoundSql getBoundSql(Object parameterObject) {
     return new BoundSql(configuration, sql, parameterMappings, parameterObject);

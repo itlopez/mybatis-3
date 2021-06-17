@@ -20,6 +20,7 @@ import java.lang.reflect.Method;
 
 /**
  * @author Clinton Begin
+ *  mybatis动态代理参数的封装类，核心方法proceed()走的还是method.invoke(target, args)
  */
 public class Invocation {
 

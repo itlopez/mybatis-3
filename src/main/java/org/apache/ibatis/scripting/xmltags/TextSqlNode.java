@@ -24,6 +24,7 @@ import org.apache.ibatis.type.SimpleTypeRegistry;
 
 /**
  * @author Clinton Begin
+ *  类似于select * from ${table_name}的表达式文本
  */
 public class TextSqlNode implements SqlNode {
   private final String text;
