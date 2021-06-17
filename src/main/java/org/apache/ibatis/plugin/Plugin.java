@@ -72,6 +72,11 @@ public class Plugin implements InvocationHandler {
     if (interfaces.length > 0) {
       // 注：new Plugin(target, interceptor, signatureMap)
       // 中，Plugin是继承了InvocationHandler，这里是为了自定义自己的InvocationHandler，走自定义的逻辑
+      // Proxy.newProxyInstance(
+      //          type.getClassLoader(),
+      //          interfaces,
+      //          new Plugin(target, interceptor, signatureMap));
+      // 实际上就是对接口interfaces进行了动态代理，使调用interfaces的方法都走到InvocationHandler的invoke方法中(注：Plugin实际上也是InvocationHandler)
       return Proxy.newProxyInstance(
           type.getClassLoader(),
           interfaces,
