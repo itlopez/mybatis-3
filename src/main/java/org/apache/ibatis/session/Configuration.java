@@ -100,6 +100,37 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
  */
 public class Configuration {
 
+  /**  environments里的default属性表示默认的数据库环境，与某个environment的id相对应。
+    *
+    *  1)environment环境变量
+    *      environment通过id属性与其他数据库环境区别。它有两个子节点：
+    *  a)transactionManager事务管理器
+    *     在MyBatis中有两种事务管理器类型（也就是type=”[JDBC|MANAGED]”）：
+    *     JDBC–这个配置直接简单使用了JDBC的提交和回滚设置。它依赖于从数据源得到的连接来管理事务范围。
+    *     MANAGED–这个配置几乎没做什么。它从来不提交或回滚一个连接。而它会让容器来管理事务的整个生命周期（比如Spring或JEE应用服务器的上下文）
+    *
+    *  b)dataSource数据源
+    *  在MyBatis中有三种数据源类型（也就是type=”[UNPOOLED | POOLED| JNDI]”）：
+    *     UNPOOLED –这个数据源的实现是每次被请求时简单打开和关闭连接，需要配置的属性：
+    *     driver – 这是JDBC驱动的Java类的完全限定名
+    *     url – 这是数据库的JDBC URL地址。
+    *     username – 登录数据库的用户名。
+    *     password – 登录数据库的密码。
+    *     defaultTransactionIsolationLevel – 默认的连接事务隔离级别。
+    *     POOLED –mybatis实现的简单的数据库连接池类型，它使得数据库连接可被复用，不必在每次请求时都去创建一个物理的连接。
+    *     JNDI – 通过jndi从tomcat之类的容器里获取数据源。
+    *      <environments default="development">
+    *          <environment id="development">
+    *              <transactionManager type="JDBC" />
+    *              <dataSource type="POOLED">
+    *                  <property name="driver" value="${spring.datasource.driver-class-name}"/>
+    *                  <property name="url" value="${spring.datasource.url}"/>
+    *                  <property name="username" value="${spring.datasource.username}"/>
+    *                  <property name="password" value="${spring.datasource.password}"/>
+    *              </dataSource>
+    *          </environment>
+    *      </environments>
+   */
   protected Environment environment;
 
   protected boolean safeRowBoundsEnabled;
@@ -138,7 +169,8 @@ public class Configuration {
   protected ObjectWrapperFactory objectWrapperFactory = new DefaultObjectWrapperFactory();
 
   protected boolean lazyLoadingEnabled = false;
-  protected ProxyFactory proxyFactory = new JavassistProxyFactory(); // #224 Using internal Javassist instead of OGNL
+  // #224 Using internal Javassist instead of OGNL
+  protected ProxyFactory proxyFactory = new JavassistProxyFactory();
 
   protected String databaseId;
   /**
@@ -183,14 +215,18 @@ public class Configuration {
     this.environment = environment;
   }
 
+  // Configuration构造器，别名注册器
   public Configuration() {
+    // 事务
     typeAliasRegistry.registerAlias("JDBC", JdbcTransactionFactory.class);
     typeAliasRegistry.registerAlias("MANAGED", ManagedTransactionFactory.class);
 
+    // 数据源工厂
     typeAliasRegistry.registerAlias("JNDI", JndiDataSourceFactory.class);
     typeAliasRegistry.registerAlias("POOLED", PooledDataSourceFactory.class);
     typeAliasRegistry.registerAlias("UNPOOLED", UnpooledDataSourceFactory.class);
 
+    // 缓存类
     typeAliasRegistry.registerAlias("PERPETUAL", PerpetualCache.class);
     typeAliasRegistry.registerAlias("FIFO", FifoCache.class);
     typeAliasRegistry.registerAlias("LRU", LruCache.class);
@@ -199,9 +235,11 @@ public class Configuration {
 
     typeAliasRegistry.registerAlias("DB_VENDOR", VendorDatabaseIdProvider.class);
 
+    // XML的解析驱动，用于解析动态sql
     typeAliasRegistry.registerAlias("XML", XMLLanguageDriver.class);
     typeAliasRegistry.registerAlias("RAW", RawLanguageDriver.class);
 
+    // 用于日志模块
     typeAliasRegistry.registerAlias("SLF4J", Slf4jImpl.class);
     typeAliasRegistry.registerAlias("COMMONS_LOGGING", JakartaCommonsLoggingImpl.class);
     typeAliasRegistry.registerAlias("LOG4J", Log4jImpl.class);
@@ -210,6 +248,7 @@ public class Configuration {
     typeAliasRegistry.registerAlias("STDOUT_LOGGING", StdOutImpl.class);
     typeAliasRegistry.registerAlias("NO_LOGGING", NoLoggingImpl.class);
 
+    // 动态代理
     typeAliasRegistry.registerAlias("CGLIB", CglibProxyFactory.class);
     typeAliasRegistry.registerAlias("JAVASSIST", JavassistProxyFactory.class);
 

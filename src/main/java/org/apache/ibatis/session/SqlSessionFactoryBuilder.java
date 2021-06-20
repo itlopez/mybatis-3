@@ -44,9 +44,42 @@ public class SqlSessionFactoryBuilder {
     return build(reader, null, properties);
   }
 
+  /**
+   * 	<environments default="development">
+   * 		<environment id="development-hsql">
+   * 			<transactionManager type="JDBC" />
+   * 			<dataSource type="UNPOOLED">
+   * 				<property name="driver" value="org.hsqldb.jdbcDriver" />
+   * 				<property name="url" value="jdbc:hsqldb:mem:repeatable" />
+   * 				<property name="username" value="sa" />
+   * 			</dataSource>
+   * 		</environment>
+   * 		<environment id="development-derby">
+   * 			<transactionManager type="JDBC" />
+   * 			<dataSource type="UNPOOLED">
+   * 				<property name="driver" value="org.apache.derby.jdbc.EmbeddedDriver" />
+   * 				<property name="url" value="jdbc:derby:target/derby/repeatable;create=true" />
+   * 				<property name="username" value="" />
+   * 			</dataSource>
+   * 		</environment>
+   * 		<environment id="development-h2">
+   * 			<transactionManager type="JDBC" />
+   * 			<dataSource type="UNPOOLED">
+   * 				<property name="driver" value="org.h2.Driver" />
+   * 				<property name="url" value="jdbc:h2:mem:repeatable;DB_CLOSE_DELAY=-1" />
+   * 				<property name="username" value="sa" />
+   * 			</dataSource>
+   * 		</environment>
+   * 核心：sqlSessionFactory的入口，此处需要读取mybatis-config的配置，并解析成Configuration类配置
+   * @param reader
+   * @param environment 如上：这里的enviroment指的是development-hsql、development-derby、development-h2
+   * @param properties 如上：属性指的是：driver、url、username
+   * @return
+   */
   public SqlSessionFactory build(Reader reader, String environment, Properties properties) {
     try {
       XMLConfigBuilder parser = new XMLConfigBuilder(reader, environment, properties);
+      // parser.parse()解析成Configuration类
       return build(parser.parse());
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error building SqlSession.", e);

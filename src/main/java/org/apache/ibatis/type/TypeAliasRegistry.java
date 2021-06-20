@@ -39,6 +39,9 @@ public class TypeAliasRegistry {
 
   private final Map<String, Class<?>> typeAliases = new HashMap<>();
 
+  /**
+   * Mybatis常用类型，初始化注册到TypeAliasRegistry中
+   */
   public TypeAliasRegistry() {
     registerAlias("string", String.class);
 

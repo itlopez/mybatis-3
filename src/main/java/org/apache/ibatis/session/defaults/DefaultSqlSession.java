@@ -47,6 +47,9 @@ import org.apache.ibatis.session.SqlSession;
  */
 public class DefaultSqlSession implements SqlSession {
 
+  /**
+   * 主要用于在sqlSession查询数据时，通过statementId取MappedStatement
+   */
   private final Configuration configuration;
 
   /**
