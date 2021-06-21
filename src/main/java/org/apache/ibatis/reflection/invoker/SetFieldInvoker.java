@@ -21,6 +21,7 @@ import org.apache.ibatis.reflection.Reflector;
 
 /**
  * @author Clinton Begin
+ *  兼容Class的字段没有setter方法时，可以通过SetFieldInvoker为字段赋值
  */
 public class SetFieldInvoker implements Invoker {
   private final Field field;

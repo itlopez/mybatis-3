@@ -44,18 +44,34 @@ import org.apache.ibatis.reflection.property.PropertyNamer;
 /**
  * This class represents a cached set of class definition information that
  * allows for easy mapping between property names and getter/setter methods.
+ * 每个 Reflector对应一个类， 会缓存类的元信息，此类表示一组缓存的类的元数据，允许在属性名和getter/setter方法之间轻松映射。
  *
  * @author Clinton Begin
  */
 public class Reflector {
 
+  // 对应类的Class对象
   private final Class<?> type;
+
+  //可读的属性数组
   private final String[] readablePropertyNames;
+
+  //可写的属性数组
   private final String[] writablePropertyNames;
+
+  // key是属性名，value是SetFieldInvoker
   private final Map<String, Invoker> setMethods = new HashMap<>();
+
+  // key是属性名，value是GetFieldInvoker
   private final Map<String, Invoker> getMethods = new HashMap<>();
+
+  // key是属性名称，value是setter方法的入参类型
   private final Map<String, Class<?>> setTypes = new HashMap<>();
+
+  // key是属性名称，value是getter方法的出参类型
   private final Map<String, Class<?>> getTypes = new HashMap<>();
+
+  // 默认构造器
   private Constructor<?> defaultConstructor;
 
   private Map<String, String> caseInsensitivePropertyMap = new HashMap<>();
@@ -63,10 +79,15 @@ public class Reflector {
   public Reflector(Class<?> clazz) {
     type = clazz;
     addDefaultConstructor(clazz);
+    // 为getMethods、getTypes赋值
     addGetMethods(clazz);
+    // 为setMethods、setTypes赋值
     addSetMethods(clazz);
+    // 对于没有getter 和 setter方法的字段，也一起add到getMethods、setMethods
     addFields(clazz);
+    // 从getMethods获取可读的属性，有getter方法的是可读的属性
     readablePropertyNames = getMethods.keySet().toArray(new String[0]);
+    // 从setMethods获取可写的属性，有setter方法的是可写的属性
     writablePropertyNames = setMethods.keySet().toArray(new String[0]);
     for (String propName : readablePropertyNames) {
       caseInsensitivePropertyMap.put(propName.toUpperCase(Locale.ENGLISH), propName);
@@ -83,13 +104,21 @@ public class Reflector {
   }
 
   private void addGetMethods(Class<?> clazz) {
+    // key是属性名，value是get Method
     Map<String, List<Method>> conflictingGetters = new HashMap<>();
     Method[] methods = getClassMethods(clazz);
+    // 方法名没入参并且以get开头并且方法名长度大于3 或者 以is开头并且方法名长度大于2，则为get方法
     Arrays.stream(methods).filter(m -> m.getParameterTypes().length == 0 && PropertyNamer.isGetter(m.getName()))
       .forEach(m -> addMethodConflict(conflictingGetters, PropertyNamer.methodToProperty(m.getName()), m));
     resolveGetterConflicts(conflictingGetters);
   }
 
+  /**
+   * 为啥会有冲突？
+   * 1、主要解决Boolean类型属性，命名不规范 例： getFlag() 与  isFlag()，以is开头的方法为主；
+   * 2、如果方法返回的类型中，A继承B，则以B为主
+   * @param conflictingGetters
+   */
   private void resolveGetterConflicts(Map<String, List<Method>> conflictingGetters) {
     for (Entry<String, List<Method>> entry : conflictingGetters.entrySet()) {
       Method winner = null;
@@ -103,12 +132,22 @@ public class Reflector {
         Class<?> winnerType = winner.getReturnType();
         Class<?> candidateType = candidate.getReturnType();
         if (candidateType.equals(winnerType)) {
+          /**
+           * 如果返回类型相同,不是boolean类型报异常,以is开头的方法为主
+           * 主要解决Boolean类型属性，命名不规范 例： getFlag() 与  isFlag()
+           */
           if (!boolean.class.equals(candidateType)) {
             isAmbiguous = true;
             break;
           } else if (candidate.getName().startsWith("is")) {
             winner = candidate;
           }
+          /**
+           * isAssignableFrom()方法是从类继承的角度去判断，判断是否为某个类的父类
+           * instanceof()方法是从实例继承的角度去判断,是判断是否某个类的子类。
+           * 以子类返回类型为主：针对一些重写的场景，子类放大了返回值
+           * 例如: 父类的一个方法的返回值为 List ，子类对该方法的返回值可以覆写为 ArrayList
+           */
         } else if (candidateType.isAssignableFrom(winnerType)) {
           // OK getter type is descendant
         } else if (winnerType.isAssignableFrom(candidateType)) {
@@ -143,20 +182,28 @@ public class Reflector {
 
   private void addMethodConflict(Map<String, List<Method>> conflictingMethods, String name, Method method) {
     if (isValidPropertyName(name)) {
+      // 相当于Map<String, List<String>>中put值
+      // put key，存在则返回value，不存在创建value并put(key,vlue), 返回value
       List<Method> list = conflictingMethods.computeIfAbsent(name, k -> new ArrayList<>());
       list.add(method);
     }
   }
 
+  /**
+   * 解决Setter方法冲突，保证最规范在最合理的Setter方法
+   * @param conflictingSetters
+   */
   private void resolveSetterConflicts(Map<String, List<Method>> conflictingSetters) {
     for (Entry<String, List<Method>> entry : conflictingSetters.entrySet()) {
       String propName = entry.getKey();
       List<Method> setters = entry.getValue();
+      // 先设置了getterType，所以通过属性名可以拿getter方法的返回值
       Class<?> getterType = getTypes.get(propName);
       boolean isGetterAmbiguous = getMethods.get(propName) instanceof AmbiguousMethodInvoker;
       boolean isSetterAmbiguous = false;
       Method match = null;
       for (Method setter : setters) {
+        // setter对应的参数类型与该属性对应的getter的响应值类型一致则是合理的setter方法
         if (!isGetterAmbiguous && setter.getParameterTypes()[0].equals(getterType)) {
           // should be the best match
           match = setter;
@@ -225,6 +272,7 @@ public class Reflector {
   private void addFields(Class<?> clazz) {
     Field[] fields = clazz.getDeclaredFields();
     for (Field field : fields) {
+      // 加入setter方法不含有的方法，则需要
       if (!setMethods.containsKey(field.getName())) {
         // issue #379 - removed the check for final because JDK 1.5 allows
         // modification of final fields through reflection (JSR-133). (JGB)
@@ -238,6 +286,7 @@ public class Reflector {
         addGetField(field);
       }
     }
+    // 遍历获取父类的属性
     if (clazz.getSuperclass() != null) {
       addFields(clazz.getSuperclass());
     }
@@ -275,16 +324,19 @@ public class Reflector {
   private Method[] getClassMethods(Class<?> clazz) {
     Map<String, Method> uniqueMethods = new HashMap<>();
     Class<?> currentClass = clazz;
+    // 循环类，类的父类，类的父类的父类，直到父类为 Object
     while (currentClass != null && currentClass != Object.class) {
       addUniqueMethods(uniqueMethods, currentClass.getDeclaredMethods());
 
       // we also need to look for interface methods -
       // because the class may be abstract
+      // 抽象类可能没有实现接口的方法，那么接口方法要通过该方法获取
       Class<?>[] interfaces = currentClass.getInterfaces();
       for (Class<?> anInterface : interfaces) {
         addUniqueMethods(uniqueMethods, anInterface.getMethods());
       }
 
+      // 获取该类的父类,接口是拿不到的（返回表示此 Class 所表示的实体（类、接口、基本类型或 void）的超类的 Class），extend只能继承一个父类
       currentClass = currentClass.getSuperclass();
     }
 
@@ -293,8 +345,26 @@ public class Reflector {
     return methods.toArray(new Method[0]);
   }
 
+  /**
+   * 方法唯一签名：方法名 + 入参 + 出参
+   * @param uniqueMethods
+   * @param methods
+   */
   private void addUniqueMethods(Map<String, Method> uniqueMethods, Method[] methods) {
     for (Method currentMethod : methods) {
+      /**
+       * public interface AInterface<T> {
+       *     void func(T t);
+       * }
+       * public class AClass implements AInterface<String> {
+       *     @Override
+       *     public void func(String s) {
+       *         System.out.println(s);
+       *     }
+       * }
+       */
+      // 注：加入父类是泛型方法，子类实现了父类方法，那么子类在生成class字节码时，会生成两个方法，分别是：func(String s) 以及 func(Object obj)
+      // 而父类生成的字节码是func(Object obj)，泛型是1.5之后才出现了，java为了兼容之前的版本，就在子类中多生成了一个方法，称之为桥方法，该方法需要过滤
       if (!currentMethod.isBridge()) {
         String signature = getSignature(currentMethod);
         // check to see if the method is already known

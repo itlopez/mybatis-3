@@ -22,6 +22,7 @@ import org.apache.ibatis.reflection.Reflector;
 
 /**
  * @author Clinton Begin
+ *  getter方法或者setter方法的调用
  */
 public class MethodInvoker implements Invoker {
 
@@ -30,7 +31,7 @@ public class MethodInvoker implements Invoker {
 
   public MethodInvoker(Method method) {
     this.method = method;
-
+     // 当方法有一个参数时，则为字段的setter方法，字段的类型就是set方法中的参数；否则，则是字段的getter方法，返回字段的类型就是returnType
     if (method.getParameterTypes().length == 1) {
       type = method.getParameterTypes()[0];
     } else {

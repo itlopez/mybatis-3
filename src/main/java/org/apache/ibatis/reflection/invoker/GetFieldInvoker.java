@@ -21,6 +21,7 @@ import org.apache.ibatis.reflection.Reflector;
 
 /**
  * @author Clinton Begin
+ * 兼容Class的字段没有getter方法时，可以通过GetFieldInvoker获取字段的值
  */
 public class GetFieldInvoker implements Invoker {
   private final Field field;
