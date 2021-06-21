@@ -69,6 +69,7 @@ public class DefaultObjectFactory implements ObjectFactory, Serializable {
           }
         }
       }
+      // 注：这里List<Class<?>> constructorArgTypes 转数组，可以用new Class[0]，因为Arraylist是动态数组
       constructor = type.getDeclaredConstructor(constructorArgTypes.toArray(new Class[0]));
       try {
         return constructor.newInstance(constructorArgs.toArray(new Object[0]));

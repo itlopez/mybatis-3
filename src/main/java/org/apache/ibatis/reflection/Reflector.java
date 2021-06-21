@@ -85,9 +85,9 @@ public class Reflector {
     addSetMethods(clazz);
     // 对于没有getter 和 setter方法的字段，也一起add到getMethods、setMethods
     addFields(clazz);
-    // 从getMethods获取可读的属性，有getter方法的是可读的属性
+    // 从getMethods获取可读的属性
     readablePropertyNames = getMethods.keySet().toArray(new String[0]);
-    // 从setMethods获取可写的属性，有setter方法的是可写的属性
+    // 从setMethods获取可写的属性
     writablePropertyNames = setMethods.keySet().toArray(new String[0]);
     for (String propName : readablePropertyNames) {
       caseInsensitivePropertyMap.put(propName.toUpperCase(Locale.ENGLISH), propName);
@@ -248,6 +248,17 @@ public class Reflector {
     setTypes.put(name, typeToClass(paramTypes[0]));
   }
 
+  /**
+   * 获取属性的类型，并且转换为Class
+   * 注：Type有5个子类型，
+   *      类Class：表示原始类型。Class对象表示JVM的一个类和接口，每个java类在JVM里都是一个Class对象，在程序中可以通过"类名.class","对象.getClass","Class.forName()"获取到，数组也被映射为Class对象，所有元素类型相同且维数相同的数组共享同一个Class对象；
+   *      接口ParameterizedType：表示的是参数化类型，例如：List<String>、Map<Integer,String>这种带范型的类型（注：这里有原始类型（List）以及实际上参数类型（String））；
+   *      接口TypeVariable：表示的类型变量，用来反映在JVM编译泛型前的信息，例如：List<T>中的T就是类型变量，在编译时需被转换成一个具体的类型后才能被使用。
+   *      接口GenericArrayType：表示的是数组类型且组成元素是ParameterizedType或TypeVariable。例如：List<String>[]或T[]
+   *      接口WildcardType：表示的是通配符类型，；例如 ? extends Number 和 ? super Integer 。
+   * @param src
+   * @return
+   */
   private Class<?> typeToClass(Type src) {
     Class<?> result = null;
     if (src instanceof Class) {
@@ -255,6 +266,7 @@ public class Reflector {
     } else if (src instanceof ParameterizedType) {
       result = (Class<?>) ((ParameterizedType) src).getRawType();
     } else if (src instanceof GenericArrayType) {
+      // 获取数组元素的类型
       Type componentType = ((GenericArrayType) src).getGenericComponentType();
       if (componentType instanceof Class) {
         result = Array.newInstance((Class<?>) componentType, 0).getClass();
