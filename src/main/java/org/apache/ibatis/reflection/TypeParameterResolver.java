@@ -26,13 +26,14 @@ import java.lang.reflect.WildcardType;
 import java.util.Arrays;
 
 /**
+ * 用于解析字段类型、方法返回类型、方法入参类型（放回数组）
  * @author Iwao AVE!
  */
 public class TypeParameterResolver {
 
   /**
    * Resolve field type.
-   *
+   *  解析字段的类型 private String field，则返回是的Type是String
    * @param field
    *          the field
    * @param srcType

@@ -127,6 +127,7 @@ public class ArrayUtil {
     if (!clazz.isArray()) {
       return obj.toString();
     }
+    // 获取数组的Class对象
     final Class<?> componentType = obj.getClass().getComponentType();
     if (long.class.equals(componentType)) {
       return Arrays.toString((long[]) obj);

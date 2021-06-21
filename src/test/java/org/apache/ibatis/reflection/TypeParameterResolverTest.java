@@ -17,12 +17,7 @@ package org.apache.ibatis.reflection;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.lang.reflect.WildcardType;
+import java.lang.reflect.*;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +34,8 @@ import org.apache.ibatis.reflection.typeparam.Level2Mapper;
 import org.junit.jupiter.api.Test;
 
 class TypeParameterResolverTest {
+
+  // 1、包装类型、基本类型、原始类型，用TypeParameterResolver返回来的，保持不变
   @Test
   void testReturn_Lv0SimpleClass() throws Exception {
     Class<?> clazz = Level0Mapper.class;
@@ -71,6 +68,13 @@ class TypeParameterResolverTest {
     assertEquals(Double.class, result);
   }
 
+  // 2、ParameterizedType表示的是参数化类型，例如List<String>、Map<Integer，String>、Service<User>这种带有泛型的类型
+          //例子：1、Calculator.java中，类定义了T,即Calculator<T>，同理Map<K,V>、List<E>这些都有
+  //      2.1、Type getRawType()一一返回参数化类型中的原始类型，例如List<String ＞ 的原始类型为List 。
+  //      2.2、Type[] getActualTypeArguments()一一获取参数化类型的类型变量或是实际类型列
+  //            表，例如Map<Integer, String＞ 的实际泛型列表Integer 和String 。需要注意的是，
+  //            该列表的元素类型都是Type ，也就是说，可能存在多层嵌套的情况。
+
   @Test
   void testReturn_SimpleList() throws Exception {
     Class<?> clazz = Level1Mapper.class;
@@ -96,6 +100,9 @@ class TypeParameterResolverTest {
     assertEquals(Double.class, paramType.getActualTypeArguments()[1]);
   }
 
+  // 3、WildcardType表示通配符泛型，例如? extends Number和? super Integer。
+  //        Type[] getUpperBounds()破折号泛型变量的上界。
+  //        Type[] getLowerBounds()破折号泛型变量的下界。
   @Test
   void testReturn_SimpleWildcard() throws Exception {
     Class<?> clazz = Level1Mapper.class;
@@ -133,6 +140,8 @@ class TypeParameterResolverTest {
     assertEquals(String.class, resultClass.getComponentType().getComponentType());
   }
 
+  // 注：<K extends Calculator<?>> K simpleSelectTypeVar()中，K实际上是继承 Calculator<?>,因为Caculator是 Calculator<T>,所以是ParameterizedType
+  //而？代表实际类型是通配符泛型
   @Test
   void testReturn_SimpleTypeVar() throws Exception {
     Class<?> clazz = Level1Mapper.class;
@@ -152,6 +161,16 @@ class TypeParameterResolverTest {
     Type result = TypeParameterResolver.resolveReturnType(method, clazz);
     assertEquals(String.class, result);
   }
+
+  @Test
+  void testReturnM() throws Exception {
+    Class<?> clazz = Level1Mapper.class;
+    Method method = clazz.getMethod("selectM", Object.class);
+    Type result = TypeParameterResolver.resolveReturnType(method, clazz);
+    assertEquals(TypeVariable.class, result);
+  }
+
+
 
   @Test
   void testReturn_Lv2CustomClass() throws Exception {
