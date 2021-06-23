@@ -29,13 +29,14 @@ import org.apache.ibatis.reflection.property.PropertyTokenizer;
 
 /**
  * @author Clinton Begin
+ *  基于Reflector和PropertyTokenizer组合使用，实现了对复杂的属性表达式的解析
  */
 public class MetaClass {
 
   // reflector工厂，用于创建Reflector对象
   private final ReflectorFactory reflectorFactory;
 
-  // 类的class信息
+  // 类的class信息（ 反射器，在创建MetaClass时会指定一个类，该Reflector对象用于记录该类相关的元信息）
   private final Reflector reflector;
 
   private MetaClass(Class<?> type, ReflectorFactory reflectorFactory) {
@@ -48,7 +49,7 @@ public class MetaClass {
   }
 
   /**
-   * 为类属性创建MetaClass
+   * 为类属性创建MetaClass对象
    * 例如：private String name;
    *       private People people;
    * @param name
@@ -60,7 +61,7 @@ public class MetaClass {
   }
 
   /**
-   * 根据属性名（有可能不规范，大小写混杂）查找属性的标准名称
+   * 根据属性表达式（有可能不规范，大小写混杂）查找属性名
    * @param name
    * @return
    */
@@ -82,16 +83,24 @@ public class MetaClass {
     return findProperty(name);
   }
 
+  /**
+   * 获取指定类的可读属性数组
+   * @return
+   */
   public String[] getGetterNames() {
     return reflector.getGetablePropertyNames();
   }
 
+  /**
+   * 获取指定类的可写属性数组
+   * @return
+   */
   public String[] getSetterNames() {
     return reflector.getSetablePropertyNames();
   }
 
   /**
-   * 根据名称获取setter方法中入参类型（因为字段类型有可能是泛型，只有在set方法时才能确认）
+   * 通过表达式 找到对应属性 的setter方法参数类型,例如：people[0].age就是返回的类型就是int.class;people[0].name返回类型是String.class
    * @param name
    * @return
    */
@@ -105,6 +114,11 @@ public class MetaClass {
     }
   }
 
+  /**
+   * 通过表达式 找到对应属性 的getter方法参数类型
+   * @param name
+   * @return
+   */
   public Class<?> getGetterType(String name) {
     PropertyTokenizer prop = new PropertyTokenizer(name);
     if (prop.hasNext()) {
@@ -121,7 +135,8 @@ public class MetaClass {
   }
 
   /**
-   * 比如 order[0]（此种表达式表示order是List） 没有子表达式，会调用本方法处理，假设 order 属性的类型为 List<String>，则 order[0] 表示列表中的第一个元素，其属性类型应为 String。
+   *  获取getter类型，如果prop有下标且为集合则获取泛型类型(如：Collection<T>，获取的泛型类型T)
+   *  比如 order[0]（此种表达式表示order是List） 没有子表达式，会调用本方法处理，假设 order 属性的类型为 List<String>，则 order[0] 表示列表中的第一个元素，其属性类型应为 String。
    * @param prop
    * @return
    */
@@ -132,6 +147,7 @@ public class MetaClass {
       Type returnType = getGenericGetterType(prop.getName());
       if (returnType instanceof ParameterizedType) {
         Type[] actualTypeArguments = ((ParameterizedType) returnType).getActualTypeArguments();
+        // Collection<T>最多只有一个泛型
         if (actualTypeArguments != null && actualTypeArguments.length == 1) {
           returnType = actualTypeArguments[0];
           if (returnType instanceof Class) {

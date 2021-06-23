@@ -28,19 +28,31 @@ import org.apache.ibatis.reflection.wrapper.ObjectWrapper;
 import org.apache.ibatis.reflection.wrapper.ObjectWrapperFactory;
 
 /**
+ * 对象元数据(相当于MetaObject -> BeanWrapper -> MetaClass -> Reflector)
+ *  1、Mybatis对象操作的工具类，等同于MetaClass
+ *  2、提供了基于对复杂的属性表达式为对象的属性值的获得和设置等方法。
+ *  3、通过组合的方式(封装ObjectWrapper)，对BaseWrapper操作进一步增强。
+ *  4、MetaObject是一个对象包装器，其性质上有点类似ASF提供的commons类库，其中包装了对象的元数据信息，对象本身，对象反射工厂，对象包装器工厂等。
+ *    使得根据OGNL表达式设置或者获取对象的属性更为便利，也可以更加方便的判断对象中是否包含指定属性、指定属性是否具有getter、setter等。
+ *    主要的功能是通过其ObjectWrapper类型的属性完成的，它包装了操作对象元数据以及对象本身的主要接口，操作标准对象的实现是BeanWrapper。
+ *    BeanWrapper类型有个MetaClass类型的属性，MetaClass中有个Reflector属性，其中包含了可读、可写的属性、方法以及构造器信息。
  *
- *   MetaObject是一个对象包装器，其性质上有点类似ASF提供的commons类库，其中包装了对象的元数据信息，对象本身，对象反射工厂，对象包装器工厂等。
- *   使得根据OGNL表达式设置或者获取对象的属性更为便利，也可以更加方便的判断对象中是否包含指定属性、指定属性是否具有getter、setter等。
- *   主要的功能是通过其ObjectWrapper类型的属性完成的，它包装了操作对象元数据以及对象本身的主要接口，操作标准对象的实现是BeanWrapper。
- *   BeanWrapper类型有个MetaClass类型的属性，MetaClass中有个Reflector属性，其中包含了可读、可写的属性、方法以及构造器信息。
+ *   1、通过组合的方式(封装ObjectWrapper)，对BaseWrapper操作进一步增强
  * @author Clinton Begin
  */
 public class MetaObject {
 
+  // 原始对象
   private final Object originalObject;
+
+  // 这里主要组合了objectWrapper，包装过的对象，主要的功能是通过其ObjectWrapper类型的属性完成的，它包装了操作对象元数据以及对象本身的主要接口，操作标准对象的实现是BeanWrapper
   private final ObjectWrapper objectWrapper;
+
+  // 对象工厂
   private final ObjectFactory objectFactory;
+  // 包装过的对象工厂
   private final ObjectWrapperFactory objectWrapperFactory;
+  // 映射工厂
   private final ReflectorFactory reflectorFactory;
 
   private MetaObject(Object object, ObjectFactory objectFactory, ObjectWrapperFactory objectWrapperFactory, ReflectorFactory reflectorFactory) {
@@ -116,7 +128,9 @@ public class MetaObject {
 
   public Object getValue(String name) {
     PropertyTokenizer prop = new PropertyTokenizer(name);
+    // name中是否含有. , 如people[0].name，要的是people的第一个对象中的name的值
     if (prop.hasNext()) {
+      // 根据下标或者key获取MetaObject，递归判断子表达式 children ，获取值，if里的逻辑只是为了做递归，最终走的还是objectWrapper.get(prop)
       MetaObject metaValue = metaObjectForProperty(prop.getIndexedName());
       if (metaValue == SystemMetaObject.NULL_META_OBJECT) {
         return null;
@@ -124,10 +138,16 @@ public class MetaObject {
         return metaValue.getValue(prop.getChildren());
       }
     } else {
+      // 核心方法，就是根据属性表达式，获取值
       return objectWrapper.get(prop);
     }
   }
 
+  /**
+   * 根据属性表达式set值
+   * @param name
+   * @param value
+   */
   public void setValue(String name, Object value) {
     PropertyTokenizer prop = new PropertyTokenizer(name);
     if (prop.hasNext()) {

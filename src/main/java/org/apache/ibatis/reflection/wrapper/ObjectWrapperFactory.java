@@ -19,18 +19,19 @@ import org.apache.ibatis.reflection.MetaObject;
 
 /**
  * @author Clinton Begin
+ *  留给用户使用的包装工厂，可参考CustomBeanWrapper
  */
 public interface ObjectWrapperFactory {
 
   /**
-   * 对象是否需要加工
+   * 是否包装了指定对象
    * @param object
    * @return
    */
   boolean hasWrapperFor(Object object);
 
   /**
-   * 获取包装（ObjectWrapper）对象
+   *  获得指定对象的 ObjectWrapper 对象
    * @param metaObject
    * @param object
    * @return

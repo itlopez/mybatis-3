@@ -23,6 +23,7 @@ import org.apache.ibatis.reflection.ReflectionException;
 import org.apache.ibatis.reflection.property.PropertyTokenizer;
 
 /**
+ * 基类，可关注核心类BeanWrapper以及MapWrapper
  * @author Clinton Begin
  */
 public abstract class BaseWrapper implements ObjectWrapper {
@@ -34,6 +35,13 @@ public abstract class BaseWrapper implements ObjectWrapper {
     this.metaObject = metaObject;
   }
 
+  /**
+   * 公共方法 ：根据PropertyTokenizer获取对应属性整个的集合（Array、List、Map）对象
+   * BeanWrapper -> BaseWrapper -> MetaObject -> BeanWrapper
+   * @param prop
+   * @param object
+   * @return
+   */
   protected Object resolveCollection(PropertyTokenizer prop, Object object) {
     if ("".equals(prop.getName())) {
       return object;
@@ -42,6 +50,12 @@ public abstract class BaseWrapper implements ObjectWrapper {
     }
   }
 
+  /**
+   * 基类方法，根据prop中的index（下标 或 key值）从集合中获取值
+   * @param prop prop PropertyTokenizer 对象
+   * @param collection collection 集合（Array、List、Map）
+   * @return  对应下标或key的值
+   */
   protected Object getCollectionValue(PropertyTokenizer prop, Object collection) {
     if (collection instanceof Map) {
       return ((Map) collection).get(prop.getIndex());
@@ -73,6 +87,12 @@ public abstract class BaseWrapper implements ObjectWrapper {
     }
   }
 
+  /**
+   * 基类方法，根据prop的index为集合set值
+   * @param prop
+   * @param collection
+   * @param value
+   */
   protected void setCollectionValue(PropertyTokenizer prop, Object collection, Object value) {
     if (collection instanceof Map) {
       ((Map) collection).put(prop.getIndex(), value);

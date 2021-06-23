@@ -28,11 +28,16 @@ import org.apache.ibatis.reflection.property.PropertyTokenizer;
 
 /**
  *  BeanWrapper是BaseWrapper的默认实现。其中的两个关键接口是getBeanProperty和setBeanProperty
+ *  相当于MetaObject -> BeanWrapper -> MetaClass -> Reflector
  * @author Clinton Begin
  */
 public class BeanWrapper extends BaseWrapper {
 
+  // 需要封装的对象
   private final Object object;
+
+  // 封装对象对应的MetaClass（即包含了对象的class信息类）
+  // 这里组合了metaClass，使用到了很多metaClass的功能
   private final MetaClass metaClass;
 
   public BeanWrapper(MetaObject metaObject, Object object) {
@@ -44,7 +49,9 @@ public class BeanWrapper extends BaseWrapper {
   @Override
   public Object get(PropertyTokenizer prop) {
     if (prop.getIndex() != null) {
+      // 通过BaseWrapper中的公共方法获取集合对象和集合属性
       Object collection = resolveCollection(prop, object);
+      // 通过BaseWrapper中的公共方法获取索引值下面的对象
       return getCollectionValue(prop, collection);
     } else {
       return getBeanProperty(prop, object);
@@ -54,7 +61,9 @@ public class BeanWrapper extends BaseWrapper {
   @Override
   public void set(PropertyTokenizer prop, Object value) {
     if (prop.getIndex() != null) {
+      // 通过BaseWrapper中的公共方法获取集合对象和集合属性
       Object collection = resolveCollection(prop, object);
+      // 通过BaseWrapper中的公共方法获取索引值下面的对象
       setCollectionValue(prop, collection, value);
     } else {
       setBeanProperty(prop, object, value);
@@ -158,6 +167,12 @@ public class BeanWrapper extends BaseWrapper {
     return metaValue;
   }
 
+  /**
+   * 获取Object对应PropertyTokenizer的属性值
+   * @param prop
+   * @param object
+   * @return
+   */
   private Object getBeanProperty(PropertyTokenizer prop, Object object) {
     try {
       Invoker method = metaClass.getGetInvoker(prop.getName());
@@ -173,6 +188,12 @@ public class BeanWrapper extends BaseWrapper {
     }
   }
 
+  /**
+   * 设置Object对应PropertyTokenizer的属性值
+   * @param prop
+   * @param object
+   * @param value
+   */
   private void setBeanProperty(PropertyTokenizer prop, Object object, Object value) {
     try {
       Invoker method = metaClass.getSetInvoker(prop.getName());

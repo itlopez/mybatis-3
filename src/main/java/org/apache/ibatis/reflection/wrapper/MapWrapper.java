@@ -133,6 +133,15 @@ public class MapWrapper extends BaseWrapper {
     }
   }
 
+  /**
+   *  * 主要针对嵌套属性的场景
+   * 	 * 即 address.street address.city时
+   * 	 * 首次设置address会创建一个 key为address value为new HashMap<>()
+   * @param name
+   * @param prop
+   * @param objectFactory
+   * @return
+   */
   @Override
   public MetaObject instantiatePropertyValue(String name, PropertyTokenizer prop, ObjectFactory objectFactory) {
     HashMap<String, Object> map = new HashMap<>();
