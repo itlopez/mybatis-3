@@ -18,6 +18,13 @@ package org.apache.ibatis.reflection.property;
 import java.util.Iterator;
 
 /**
+ *  迭代器模式
+ *  注：
+ *     PropertyTokenizer propertyTokenizer = new PropertyTokenizer("people[0].name");
+ *     assertEquals("name", propertyTokenizer.getChildren());
+ *     assertEquals("people", propertyTokenizer.getName());
+ *     assertEquals("0", propertyTokenizer.getIndex());
+ *     assertEquals("people[0]", propertyTokenizer.getIndexedName());
  * @author Clinton Begin
  */
 public class PropertyTokenizer implements Iterator<PropertyTokenizer> {

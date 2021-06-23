@@ -33,6 +33,11 @@ class MetaClassTest {
     ReflectorFactory reflectorFactory = new DefaultReflectorFactory();
     MetaClass meta = MetaClass.forClass(GenericConcrete.class, reflectorFactory);
     assertEquals(Long.class, meta.getGetterType("id"));
+    // 注：org.apache.ibatis.reflection.Reflector.resolveSetterConflicts中解决了该问题，setter方法会匹配该字段的getterType
+    // if (!isGetterAmbiguous && setter.getParameterTypes()[0].equals(getterType)) {
+    //          match = setter;
+    //          break;
+    //        }
     assertEquals(Long.class, meta.getSetterType("id"));
   }
 
@@ -56,6 +61,8 @@ class MetaClassTest {
     assertTrue(meta.hasGetter("richProperty"));
     assertTrue(meta.hasGetter("richList"));
     assertTrue(meta.hasGetter("richMap"));
+    // PropertyTokenizer prop = new PropertyTokenizer(name);
+    // 方法中，richList[0]解析成：name是richList、indexName=richList[0]，index="0",children为null
     assertTrue(meta.hasGetter("richList[0]"));
 
     assertTrue(meta.hasGetter("richType"));
@@ -63,6 +70,8 @@ class MetaClassTest {
     assertTrue(meta.hasGetter("richType.richProperty"));
     assertTrue(meta.hasGetter("richType.richList"));
     assertTrue(meta.hasGetter("richType.richMap"));
+    // 这里第一个对象解析成name=richType、children=richList[0]、index为null，indexName为richType
+    // 解析children（richList[0]）时，name=richList，indexName=richList[0]，index=0,children=null
     assertTrue(meta.hasGetter("richType.richList[0]"));
 
     assertEquals("richType.richProperty", meta.findProperty("richType.richProperty", false));
@@ -91,6 +100,7 @@ class MetaClassTest {
   }
 
   @Test
+  // meta.getGetterType()代表获取字段的class对象,可支持嵌套
   void shouldCheckTypeForEachGetter() {
     ReflectorFactory reflectorFactory = new DefaultReflectorFactory();
     MetaClass meta = MetaClass.forClass(RichType.class, reflectorFactory);
@@ -98,6 +108,7 @@ class MetaClassTest {
     assertEquals(String.class, meta.getGetterType("richProperty"));
     assertEquals(List.class, meta.getGetterType("richList"));
     assertEquals(Map.class, meta.getGetterType("richMap"));
+    // 注：这里，假如richList的类型是List<String>,则meta.getGetterType("richList[0]")返回的是String.class;
     assertEquals(List.class, meta.getGetterType("richList[0]"));
 
     assertEquals(RichType.class, meta.getGetterType("richType"));

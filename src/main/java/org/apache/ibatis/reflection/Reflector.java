@@ -59,10 +59,10 @@ public class Reflector {
   //可写的属性数组
   private final String[] writablePropertyNames;
 
-  // key是属性名，value是SetFieldInvoker
+  // key是属性名，value是SetFieldInvoker，也有可能是MethodInvoker
   private final Map<String, Invoker> setMethods = new HashMap<>();
 
-  // key是属性名，value是GetFieldInvoker
+  // key是属性名，value是GetFieldInvoker，也有可能是MethodInvoker
   private final Map<String, Invoker> getMethods = new HashMap<>();
 
   // key是属性名称，value是setter方法的入参类型
@@ -83,7 +83,7 @@ public class Reflector {
     addGetMethods(clazz);
     // 为setMethods、setTypes赋值
     addSetMethods(clazz);
-    // 对于没有getter 和 setter方法的字段，也一起add到getMethods、setMethods
+    // 重点对于没有getter 和 setter方法的字段，也一起add到getMethods、setMethods
     addFields(clazz);
     // 从getMethods获取可读的属性
     readablePropertyNames = getMethods.keySet().toArray(new String[0]);
@@ -262,20 +262,24 @@ public class Reflector {
   private Class<?> typeToClass(Type src) {
     Class<?> result = null;
     if (src instanceof Class) {
+      // class类型
       result = (Class<?>) src;
     } else if (src instanceof ParameterizedType) {
+      // List<String>
       result = (Class<?>) ((ParameterizedType) src).getRawType();
     } else if (src instanceof GenericArrayType) {
-      // 获取数组元素的类型
+      // 获取数组元素的类型 String []
       Type componentType = ((GenericArrayType) src).getGenericComponentType();
       if (componentType instanceof Class) {
         result = Array.newInstance((Class<?>) componentType, 0).getClass();
       } else {
+        // 有可能是多维数组
         Class<?> componentClass = typeToClass(componentType);
         result = Array.newInstance(componentClass, 0).getClass();
       }
     }
     if (result == null) {
+      // Object.class
       result = Object.class;
     }
     return result;

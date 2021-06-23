@@ -20,6 +20,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.List;
 
 import org.apache.ibatis.reflection.invoker.GetFieldInvoker;
 import org.apache.ibatis.reflection.invoker.Invoker;
@@ -89,6 +90,11 @@ public class MetaClass {
     return reflector.getSetablePropertyNames();
   }
 
+  /**
+   * 根据名称获取setter方法中入参类型（因为字段类型有可能是泛型，只有在set方法时才能确认）
+   * @param name
+   * @return
+   */
   public Class<?> getSetterType(String name) {
     PropertyTokenizer prop = new PropertyTokenizer(name);
     if (prop.hasNext()) {
@@ -114,8 +120,14 @@ public class MetaClass {
     return MetaClass.forClass(propType, reflectorFactory);
   }
 
+  /**
+   * 比如 order[0]（此种表达式表示order是List） 没有子表达式，会调用本方法处理，假设 order 属性的类型为 List<String>，则 order[0] 表示列表中的第一个元素，其属性类型应为 String。
+   * @param prop
+   * @return
+   */
   private Class<?> getGetterType(PropertyTokenizer prop) {
     Class<?> type = reflector.getGetterType(prop.getName());
+    // 如果type是Collection的子类 并且 prop的索引值不为空（即如果type是List<String>这些的）
     if (prop.getIndex() != null && Collection.class.isAssignableFrom(type)) {
       Type returnType = getGenericGetterType(prop.getName());
       if (returnType instanceof ParameterizedType) {
@@ -133,13 +145,22 @@ public class MetaClass {
     return type;
   }
 
+  /**
+   * 获取属性的泛型类型，即 上面的order[0](order是List)例子，在这里会传入order，TypeParameterResolver.resolveReturnType()会解析到该类型是ParameterizedType
+   * @param propertyName
+   * @return
+   */
   private Type getGenericGetterType(String propertyName) {
     try {
+      // 根据字段属性名获取invoker，该invoker有可能是MethodInvoker，也有可能是GetFieldInvoker（详细看Reflector类中的getMethods）
       Invoker invoker = reflector.getGetInvoker(propertyName);
       if (invoker instanceof MethodInvoker) {
+        // 获取MethodInvoker的Method字段，因为没有对外访问的方法，通过获取Field declaredMethod，获取到 Method method
         Field declaredMethod = MethodInvoker.class.getDeclaredField("method");
         declaredMethod.setAccessible(true);
-        Method method = (Method) declaredMethod.get(invoker);
+        Method method = (Method) declaredMethod.get(invoker);// field.get(Object)
+        // 获取field的值，即获取到MethodInvoker里面的method，method里面包含了返回类型是什么（因为是getter方法，返回类型就是字段的类型）
+
         return TypeParameterResolver.resolveReturnType(method, reflector.getType());
       } else if (invoker instanceof GetFieldInvoker) {
         Field declaredField = GetFieldInvoker.class.getDeclaredField("field");
@@ -153,6 +174,11 @@ public class MetaClass {
     return null;
   }
 
+  /**
+   * 判断类的Setter方法是否含有入参，支持people[0].name
+   * @param name
+   * @return
+   */
   public boolean hasSetter(String name) {
     PropertyTokenizer prop = new PropertyTokenizer(name);
     if (prop.hasNext()) {
@@ -167,6 +193,11 @@ public class MetaClass {
     }
   }
 
+  /**
+   *  判断类的Getter方法是否含有入参，支持people[0].name
+   * @param name
+   * @return
+   */
   public boolean hasGetter(String name) {
     PropertyTokenizer prop = new PropertyTokenizer(name);
     if (prop.hasNext()) {
@@ -189,6 +220,12 @@ public class MetaClass {
     return reflector.getSetInvoker(name);
   }
 
+  /**
+   * 根据 属性名 获取 标准的属性名（这里是有嵌套，如：people.Name，出参：people.name）
+   * @param name
+   * @param builder
+   * @return
+   */
   private StringBuilder buildProperty(String name, StringBuilder builder) {
     PropertyTokenizer prop = new PropertyTokenizer(name);
     if (prop.hasNext()) {

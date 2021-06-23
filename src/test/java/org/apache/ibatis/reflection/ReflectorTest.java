@@ -20,6 +20,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.Serializable;
+import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
 import java.util.List;
 
@@ -29,6 +30,9 @@ import org.junit.jupiter.api.Test;
 
 class ReflectorTest {
 
+  /**
+   * 测试获取类的指定属性的setter方法返回的类型
+   */
   @Test
   void testGetSetterType() {
     ReflectorFactory reflectorFactory = new DefaultReflectorFactory();
@@ -36,6 +40,9 @@ class ReflectorTest {
     Assertions.assertEquals(Long.class, reflector.getSetterType("id"));
   }
 
+  /**
+   * 测试获取类的指定属性的getter方法返回的类型
+   */
   @Test
   void testGetGetterType() {
     ReflectorFactory reflectorFactory = new DefaultReflectorFactory();
@@ -43,6 +50,9 @@ class ReflectorTest {
     Assertions.assertEquals(Long.class, reflector.getGetterType("id"));
   }
 
+  /**
+   * 测试Reflector的getter方法中是否含有class
+   */
   @Test
   void shouldNotGetClass() {
     ReflectorFactory reflectorFactory = new DefaultReflectorFactory();
@@ -122,6 +132,7 @@ class ReflectorTest {
   void shouldResolveParameterizedGetterType() {
     ReflectorFactory reflectorFactory = new DefaultReflectorFactory();
     Reflector reflector = reflectorFactory.findForClass(Child.class);
+    // 这里指的是reflector的getterType还是List.class  protected List<T> list;
     assertEquals(List.class, reflector.getGetterType("list"));
   }
 
@@ -135,8 +146,11 @@ class ReflectorTest {
   }
 
   static abstract class Parent<T extends Serializable> {
+    // id对应的Type是TypeVariable
     protected T id;
+    // list对应的Type是ParameterizedType
     protected List<T> list;
+    // array对应的Type为GenericArrayType
     protected T[] array;
     private T fld;
     public T pubFld;
