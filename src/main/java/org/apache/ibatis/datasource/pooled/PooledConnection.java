@@ -24,6 +24,8 @@ import java.sql.SQLException;
 import org.apache.ibatis.reflection.ExceptionUtil;
 
 /**
+ * PooledConnection类实现了InvocationHandler接口，也就是说这是一个动态代理类，主要是代理了Connection#close方法
+ * ***如果当前调用的是close方法，即需要关闭当前连接，则将当前连接对象重新push到连接池中，实现连接的复用***
  * @author Clinton Begin
  */
 class PooledConnection implements InvocationHandler {
@@ -32,12 +34,15 @@ class PooledConnection implements InvocationHandler {
   private static final Class<?>[] IFACES = new Class<?>[] { Connection.class };
 
   private final int hashCode;
+
+  //
   private final PooledDataSource dataSource;
   private final Connection realConnection;
   private final Connection proxyConnection;
   private long checkoutTimestamp;
   private long createdTimestamp;
   private long lastUsedTimestamp;
+  // 链接的唯一码
   private int connectionTypeCode;
   private boolean valid;
 
@@ -56,6 +61,7 @@ class PooledConnection implements InvocationHandler {
     this.createdTimestamp = System.currentTimeMillis();
     this.lastUsedTimestamp = System.currentTimeMillis();
     this.valid = true;
+    // proxyConnection：代理了Connection对象，当调用Connection.class的所有方法时，所有的调用都会去到this（即本类PooledConnection）的invoke方法当中
     this.proxyConnection = (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), IFACES, this);
   }
 
@@ -243,10 +249,12 @@ class PooledConnection implements InvocationHandler {
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     String methodName = method.getName();
     if (CLOSE.equals(methodName)) {
+      // 如果当前调用的是close方法，即需要关闭当前连接，则将当前连接对象重新push到连接池中，实现连接的复用
       dataSource.pushConnection(this);
       return null;
     }
     try {
+      // 当调用继承自Obejct类的方法时，抛出SQLException，而不是一个运行时异常
       if (!Object.class.equals(method.getDeclaringClass())) {
         // issue #579 toString() should never fail
         // throw an SQLException instead of a Runtime

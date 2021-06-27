@@ -20,12 +20,21 @@ import java.util.Properties;
 import javax.sql.DataSource;
 
 /**
+ * 一般是先调用setProperties方法， 再获取数据源getDataSource
  * @author Clinton Begin
  */
 public interface DataSourceFactory {
 
+  /**
+   *  设置属性
+   * @param props
+   */
   void setProperties(Properties props);
 
+  /**
+   * 获取数据源
+   * @return
+   */
   DataSource getDataSource();
 
 }

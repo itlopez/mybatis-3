@@ -34,20 +34,30 @@ public class UnpooledDataSourceFactory implements DataSourceFactory {
 
   protected DataSource dataSource;
 
+  /**
+   * 主要是使用非池化的数据源，默认构造器UnpooledDataSource,在getConnection时才会真正初始化：
+   * Connection connection = DriverManager.getConnection(url, properties);
+   */
   public UnpooledDataSourceFactory() {
     this.dataSource = new UnpooledDataSource();
   }
 
+  /**
+   * 调用setProperties之后，再通过getDataSource获取数据源，然后在getConnection时再获取链接
+   * @param properties
+   */
   @Override
   public void setProperties(Properties properties) {
     Properties driverProperties = new Properties();
     MetaObject metaDataSource = SystemMetaObject.forObject(dataSource);
     for (Object key : properties.keySet()) {
       String propertyName = (String) key;
+      // 如果属性名以driver.开头的，代表的是驱动，直接放入Properties中
       if (propertyName.startsWith(DRIVER_PROPERTY_PREFIX)) {
         String value = properties.getProperty(propertyName);
         driverProperties.setProperty(propertyName.substring(DRIVER_PROPERTY_PREFIX_LENGTH), value);
       } else if (metaDataSource.hasSetter(propertyName)) {
+        // 如果是dataSource属性的，可以通过MetaObject给dataSource设置（如：userName、password、driver等）
         String value = (String) properties.get(propertyName);
         Object convertedValue = convertValue(metaDataSource, propertyName, value);
         metaDataSource.setValue(propertyName, convertedValue);
@@ -55,6 +65,8 @@ public class UnpooledDataSourceFactory implements DataSourceFactory {
         throw new DataSourceException("Unknown DataSource property: " + propertyName);
       }
     }
+
+    // 设置driverProperties属性
     if (driverProperties.size() > 0) {
       metaDataSource.setValue("driverProperties", driverProperties);
     }

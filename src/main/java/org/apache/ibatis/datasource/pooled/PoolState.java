@@ -19,21 +19,33 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * 连接池状态统计对象
  * @author Clinton Begin
  */
 public class PoolState {
 
   protected PooledDataSource dataSource;
 
+  // 空闲连接集合，持有池的空闲链接，add or  remove在这控制
   protected final List<PooledConnection> idleConnections = new ArrayList<>();
+
+  // 活动连接集合
   protected final List<PooledConnection> activeConnections = new ArrayList<>();
+  // 请求计数
   protected long requestCount = 0;
+  // 累计请求时间
   protected long accumulatedRequestTime = 0;
+  // 累计等待时间
   protected long accumulatedCheckoutTime = 0;
+  // 声明的过期连接计数
   protected long claimedOverdueConnectionCount = 0;
+  // 累计的过期连接的等待时间
   protected long accumulatedCheckoutTimeOfOverdueConnections = 0;
+  // 累计等待时间
   protected long accumulatedWaitTime = 0;
+  //等待计数
   protected long hadToWaitCount = 0;
+  // 错误的连接计数
   protected long badConnectionCount = 0;
 
   public PoolState(PooledDataSource dataSource) {

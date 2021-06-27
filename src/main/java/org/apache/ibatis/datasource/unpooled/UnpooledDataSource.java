@@ -38,19 +38,34 @@ import org.apache.ibatis.io.Resources;
  */
 public class UnpooledDataSource implements DataSource {
 
+  // 驱动的类加载器
   private ClassLoader driverClassLoader;
+  // 驱动的配置
   private Properties driverProperties;
+  // 已注册的驱动集合
   private static Map<String, Driver> registeredDrivers = new ConcurrentHashMap<>();
 
+  // 驱动名，如果为mysql则driver为 com.mysql.jdbc.driver
   private String driver;
+  // 数据库的url
   private String url;
+  // 用户名
   private String username;
+  // 密码
   private String password;
 
+  // 是否自动提交事务
   private Boolean autoCommit;
+  // 数据库默认事务的隔离级别
   private Integer defaultTransactionIsolationLevel;
+  // 默认网络超时时间
   private Integer defaultNetworkTimeout;
 
+  /**
+   *  通过调用DriverManager.getDrivers()方法获取当前调用者
+   *  可以访问的所有已加载的JDBC驱动程序，并将其注册在registeredDrivers中。
+   *  其实就是通过jdk提供的spi机制获取META-INF/service包下注册的所有实现类
+   */
   static {
     Enumeration<Driver> drivers = DriverManager.getDrivers();
     while (drivers.hasMoreElements()) {
@@ -90,6 +105,11 @@ public class UnpooledDataSource implements DataSource {
     this.driverProperties = driverProperties;
   }
 
+  /**
+   * 获取链接：跟下面的getConnection(String username, String password)一致
+   * @return
+   * @throws SQLException
+   */
   @Override
   public Connection getConnection() throws SQLException {
     return doGetConnection(username, password);
@@ -97,6 +117,7 @@ public class UnpooledDataSource implements DataSource {
 
   @Override
   public Connection getConnection(String username, String password) throws SQLException {
+    // 真正干活的是doGetConnection(username, password)
     return doGetConnection(username, password);
   }
 
@@ -220,12 +241,19 @@ public class UnpooledDataSource implements DataSource {
   }
 
   private Connection doGetConnection(Properties properties) throws SQLException {
+    // 初始化驱动
     initializeDriver();
+    // 根据配置信息获取一个新的连接
     Connection connection = DriverManager.getConnection(url, properties);
+    // 配置链接，主要是超时时间、是否自动提交 以及 默认的事务隔离级别
     configureConnection(connection);
     return connection;
   }
 
+  /**
+   * 初始化驱动：加入static模块没有对应的驱动，则在此方法进行获取
+   * @throws SQLException
+   */
   private synchronized void initializeDriver() throws SQLException {
     if (!registeredDrivers.containsKey(driver)) {
       Class<?> driverType;
@@ -233,12 +261,16 @@ public class UnpooledDataSource implements DataSource {
         if (driverClassLoader != null) {
           driverType = Class.forName(driver, true, driverClassLoader);
         } else {
+          // 如果没有指定类加载器，则按照mybatis默认的顺序选择一个合适的类加载器
           driverType = Resources.classForName(driver);
         }
         // DriverManager requires the driver to be loaded via the system ClassLoader.
         // http://www.kfu.com/~nsayer/Java/dyn-jdbc.html
+        // 创建驱动对象
         Driver driverInstance = (Driver) driverType.getDeclaredConstructor().newInstance();
+        // 将上一步创建的driverInstance注册到驱动管理器中，驱动设置完后才能方便获取连接
         DriverManager.registerDriver(new DriverProxy(driverInstance));
+        // 将driverInstance对象缓存在registeredDrivers属性中
         registeredDrivers.put(driver, driverInstance);
       } catch (Exception e) {
         throw new SQLException("Error setting driver on UnpooledDataSource. Cause: " + e);
@@ -246,6 +278,11 @@ public class UnpooledDataSource implements DataSource {
     }
   }
 
+  /**
+   * 配置连接，主要是超时时间、是否自动提交 以及 默认的事务隔离级别
+   * @param conn
+   * @throws SQLException
+   */
   private void configureConnection(Connection conn) throws SQLException {
     if (defaultNetworkTimeout != null) {
       conn.setNetworkTimeout(Executors.newSingleThreadExecutor(), defaultNetworkTimeout);
@@ -258,6 +295,9 @@ public class UnpooledDataSource implements DataSource {
     }
   }
 
+  /**
+   * 静态代理，主要是针对getParentLogger方法，使用 MyBatis 自定义的 Logger 对象
+   */
   private static class DriverProxy implements Driver {
     private Driver driver;
 

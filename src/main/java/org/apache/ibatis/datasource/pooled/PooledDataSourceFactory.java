@@ -22,6 +22,9 @@ import org.apache.ibatis.datasource.unpooled.UnpooledDataSourceFactory;
  */
 public class PooledDataSourceFactory extends UnpooledDataSourceFactory {
 
+  /**
+   * 池化数据源工厂继承了非池化的数据源工厂，这里只是在构造器new了一个池化数据源
+   */
   public PooledDataSourceFactory() {
     this.dataSource = new PooledDataSource();
   }
