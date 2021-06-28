@@ -118,6 +118,7 @@ public class XMLConfigBuilder extends BaseBuilder {
       reflectorFactoryElement(root.evalNode("reflectorFactory"));
       settingsElement(settings);
       // read it after objectFactory and objectWrapperFactory issue #631
+      // 这里是构建事务工厂的入口
       environmentsElement(root.evalNode("environments"));
       databaseIdProviderElement(root.evalNode("databaseIdProvider"));
       typeHandlerElement(root.evalNode("typeHandlers"));
@@ -284,6 +285,7 @@ public class XMLConfigBuilder extends BaseBuilder {
       for (XNode child : context.getChildren()) {
         String id = child.getStringAttribute("id");
         if (isSpecifiedEnvironment(id)) {
+          // 构建事务工厂方法
           TransactionFactory txFactory = transactionManagerElement(child.evalNode("transactionManager"));
           DataSourceFactory dsFactory = dataSourceElement(child.evalNode("dataSource"));
           DataSource dataSource = dsFactory.getDataSource();
@@ -316,8 +318,18 @@ public class XMLConfigBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * 构建事务工厂方法
+   * @param context
+   * @return
+   * @throws Exception
+   */
   private TransactionFactory transactionManagerElement(XNode context) throws Exception {
     if (context != null) {
+      //    事务:根据type配置事务工厂
+      //            注：加入只使用了Mybatis，然后配置了MANAGED，那么事务将不起作用，因为ManagedTransactionFactory里的commit以及rollback不起作用
+      //    typeAliasRegistry.registerAlias("JDBC", JdbcTransactionFactory.class);
+      //    typeAliasRegistry.registerAlias("MANAGED", ManagedTransactionFactory.class);
       String type = context.getStringAttribute("type");
       Properties props = context.getChildrenAsProperties();
       TransactionFactory factory = (TransactionFactory) resolveClass(type).getDeclaredConstructor().newInstance();

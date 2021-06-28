@@ -32,6 +32,13 @@ import org.apache.ibatis.transaction.TransactionException;
  * Delays connection retrieval until getConnection() is called.
  * Ignores commit or rollback requests when autocommit is on.
  *
+ * JdbcTransaction：直接使用JDK提供的JDBC来管理事务的各个环节：提交、回滚、关闭等操作
+ * 这里的“JDBC”和“MANAGED”是在Configuration配置类的类型别名注册器中注册的别名，其对应的类分别是：JdbcTransactionFactory.class和ManagedTransactionFactory.class
+ *
+ * 使用场景：
+ * 当我们单独使用MyBatis来构建项目时，我们要在Configuration配置文件中进行环境（environment）配置，在其中要设置事务类型为JDBC，
+ * 意思是说MyBatis被单独使用时就需要使用JDBC类型的事务模型，因为在这个模型中定义了事务的各个方面，使用它可以完成事务的各项操作
+ *
  * @author Clinton Begin
  *
  * @see JdbcTransactionFactory
@@ -40,7 +47,14 @@ public class JdbcTransaction implements Transaction {
 
   private static final Log log = LogFactory.getLog(JdbcTransaction.class);
 
+  /**
+   * JdbcTransaction还是装饰了connection，底层还是jdk提供的connection
+   */
   protected Connection connection;
+
+  /**
+   * dataSource生成connection
+   */
   protected DataSource dataSource;
   protected TransactionIsolationLevel level;
   protected boolean autoCommit;
@@ -111,6 +125,9 @@ public class JdbcTransaction implements Transaction {
     }
   }
 
+  /**
+   * 如果设置自动提交为真，那么数据库将会将每一个SQL语句当做一个事务来执行
+   */
   protected void resetAutoCommit() {
     try {
       if (!connection.getAutoCommit()) {
